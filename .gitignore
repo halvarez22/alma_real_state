@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env.local
+.env
+*.log
+.DS_Store
+.vite/
+.cache/
+serviceAccountKey.json
+calve_privada_ firebase_inverland_agent/
+modules/inverlan-agent-service/serviceAccountKey.json

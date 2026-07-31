@@ -1,0 +1,55 @@
+import Groq from "groq-sdk";
+import { getChatHistory, saveMessageToHistory } from "./memory";
+
+/**
+ * Bucle Principal de Orquestación del Agente ALMA.
+ * SRP: Recupera memoria, invoca el LLM y guarda la respuesta.
+ */
+export async function processAgentChat(userId: string, incomingMessage: string): Promise<string> {
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "API_KEY_FALTANTE" });
+    // 1. Cargar Memoria a Largo Plazo desde Firestore
+    const history = await getChatHistory(userId);
+    
+    // Si el usuario ya fue transferido a un humano, el bot no interfiere.
+    if (history.isPaused) {
+        return "El asistente automático está pausado. Un asesor de ALMA se comunicará contigo a la brevedad.";
+    }
+
+    // 2. Guardar el nuevo mensaje del usuario en memoria
+    await saveMessageToHistory(userId, 'user', incomingMessage);
+
+    // Prompt del Sistema (Guardrails y Personalidad)
+    const systemInstruction = `Eres ALMA Agent, un asistente comercial experto para la inmobiliaria ALMA en México.
+Tu objetivo es perfilar al cliente pacientemente, extraer su presupuesto, zona de interés y días para mudarse.
+Usa un tono profesional, amable y empático. Nunca inventes precios o direcciones que no estén en la base de datos.
+Si el lead parece muy interesado y proporciona datos de contacto, notifica internamente que es un lead caliente.`;
+
+    try {
+        const groqMessages = [
+            { role: "system" as const, content: systemInstruction },
+            // Mapear historial al formato de Groq (OpenAI style)
+            ...history.messages.map((m: any) => ({
+                role: (m.role === 'model' ? 'assistant' : 'user') as "user" | "assistant" | "system",
+                content: m.content
+            })),
+            { role: "user" as const, content: incomingMessage }
+        ];
+
+        // 3. Invocación del LLM
+        const response = await groq.chat.completions.create({
+            model: "llama-3.3-70b-versatile",
+            messages: groqMessages,
+            temperature: 0.7
+        });
+
+        const textResponse = response.choices[0]?.message?.content || "Disculpa, no logré procesar tu solicitud.";
+
+        // 4. Guardar respuesta del LLM en la memoria
+        await saveMessageToHistory(userId, 'model', textResponse);
+
+        return textResponse;
+    } catch (error) {
+        console.error("❌ Error en Orquestador LLM:", error);
+        return "Disculpa, nuestros sistemas están experimentando una ligera demora. Por favor, intenta de nuevo en unos minutos.";
+    }
+}
