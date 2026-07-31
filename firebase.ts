@@ -14,10 +14,16 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId || !firebaseConfig.appId) {
-  throw new Error('Missing Firebase environment variables. Check your .env.local file.');
-}
+const missingVars = [];
+if (!firebaseConfig.apiKey) missingVars.push('VITE_FIREBASE_API_KEY');
+if (!firebaseConfig.authDomain) missingVars.push('VITE_FIREBASE_AUTH_DOMAIN');
+if (!firebaseConfig.projectId) missingVars.push('VITE_FIREBASE_PROJECT_ID');
+if (!firebaseConfig.appId) missingVars.push('VITE_FIREBASE_APP_ID');
 
+if (missingVars.length > 0) {
+  console.error("Missing Firebase Config:", missingVars);
+  throw new Error(`Missing Firebase environment variables: ${missingVars.join(', ')}. Check your Vercel Environment Variables.`);
+}
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 /** Secondary app: crear cuentas email/contraseña sin desloguear al admin en la app principal */
