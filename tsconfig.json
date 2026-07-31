@@ -27,6 +27,7 @@
     "noEmit": true
   },
   "exclude": [
-    "modules"
+    "modules",
+    "functions"
   ]
 }

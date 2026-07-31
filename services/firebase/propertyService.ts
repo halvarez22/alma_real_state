@@ -32,7 +32,7 @@ const PROPERTIES_COLLECTION = 'properties';
 
 
 
-type PropertyDoc = Property & { createdAt?: unknown; updatedAt?: unknown };
+type PropertyDoc = Property & { createdAt?: unknown; updatedAt?: unknown; _originalId?: string };
 
 
 
